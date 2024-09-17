@@ -1,11 +1,26 @@
-import numpy as np
-from plot import Plotter
+from models import *
+import torch
 
-plot = Plotter(True)
+# Define parameters
+batch_size = 2
+seq_len_src = 10
+seq_len_tgt = 8
+d_model = 16  # Number of features (dimensions)
+n_features = 5  # Output features
 
-x = np.linspace(0, 2 * np.pi, 100)
-plot.add_line("sin", x, np.sin(x))
+# Create random source and target sequences with the same batch size
+src = torch.randn(batch_size, seq_len_src, d_model)  # Source sequence
+tgt = torch.randn(batch_size, seq_len_tgt, d_model)  # Target sequence
 
-for i in range(100):
-    y = np.sin(x + i * 0.1)
-    plot.update_line("sin", y=y)
+# Create the model
+model = TransformerModel(
+    d_model=d_model, out_features=n_features, n_layers=2, dropout=0.1
+)
+
+# Perform a forward pass
+output = model(src, tgt)
+
+print("Source Shape:", src.shape)
+print("Target Shape:", tgt.shape)
+print("Output Shape:", output.shape)
+print(output)

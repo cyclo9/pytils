@@ -14,7 +14,7 @@ class Plotter:
         (line,) = self.ax.plot(x, y, color=color)
         self.lines[label] = line
 
-    def update_line(self, label, x=None, y=None):
+    def update_line(self, label: str, x=None, y=None):
         """Updates an existing line."""
         line = self.lines.get(label, None)
         if line is None:
