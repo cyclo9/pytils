@@ -1,7 +1,6 @@
 import torch, math
 import torch.nn as nn
 
-
 class FeedForward(nn.Module):
     def __init__(
         self,
@@ -9,7 +8,7 @@ class FeedForward(nn.Module):
         out_features: int,
         n_layers: int,
         n_units: int,
-        dropout: float,
+        dropout: float = 0.5,
     ):
         super().__init__()
 
