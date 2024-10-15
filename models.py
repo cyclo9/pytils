@@ -1,6 +1,7 @@
 import torch, math
 import torch.nn as nn
 
+
 class FeedForward(nn.Module):
     def __init__(
         self,
@@ -8,7 +9,7 @@ class FeedForward(nn.Module):
         out_features: int,
         n_layers: int,
         n_units: int,
-        dropout: float = 0.5,
+        dropout: float = 0.0,
     ):
         super().__init__()
 
@@ -50,17 +51,18 @@ class LSTM(nn.Module):
 class TransformerModel(nn.Module):
     def __init__(
         self,
-        d_model: int,
+        d_model: int,  # number of features in obs
         out_features: int,
+        max_len: int,
         n_layers: int,
-        dropout: float,
-        max_len: int = 5000,
+        nhead: int = 8,
+        dropout: float = 0.0,
     ):
         super().__init__()
         self.pos_encoder = PositionalEncoding(d_model, dropout, max_len)
         self.transformer = nn.Transformer(
             d_model=d_model,
-            nhead=8,
+            nhead=nhead,
             num_encoder_layers=n_layers,
             num_decoder_layers=n_layers,
             dim_feedforward=2048,
@@ -72,9 +74,6 @@ class TransformerModel(nn.Module):
     def forward(self, src, tgt):
         src = self.pos_encoder(src)
         tgt = self.pos_encoder(tgt)
-
-        # src = src.permute(1, 0, 2)  # (seq_len, batch, features)
-        # tgt = tgt.permute(1, 0, 2)  # (seq_len, batch, features)
 
         output = self.transformer(src, tgt)
         output = output[-1, :, :]  # Take the last output
