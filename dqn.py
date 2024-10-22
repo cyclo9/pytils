@@ -2,7 +2,7 @@ import random
 
 import torch
 import torch.nn as nn
-from torch.optim import AdamW
+from torch.optim.adamw import AdamW
 
 from buffers import ReplayBuffer
 
@@ -17,29 +17,51 @@ class DQN:
         self.policy_net = policy_net.to(device)
         self.target_net = target_net.to(device)
         self.target_net.load_state_dict(policy_net.state_dict())
+        self.E = {
+            name: torch.zeros_like(param)
+            for name, param in self.policy_net.named_parameters()
+        }
 
         self.optimizer = AdamW(policy_net.parameters(), lr=self.lr, amsgrad=True)
         self.memory = ReplayBuffer(10000)
 
-    def _init_hyperparameters(self):
-        self.batch_size = 128
-        self.gamma = 0.99
-        self.epsilon = 0.99
-        self.min_eps = 0.05
-        self.eps_decay = 10000
-        self.tau = 5e-3
-        self.lr = 1e-4
+    def _init_hyperparameters(
+        self,
+        batch_size: int = 128,
+        gamma: float = 0.99,
+        epsilon: float = 0.99,
+        min_eps: float = 0.05,
+        eps_decay: int = 10000,
+        lr: float = 1e-4,
+        tau: float = 5e-3,
+        lmbda: float = 1e-3,
+    ):
+        self.batch_size = batch_size
+        self.gamma = gamma
+        self.epsilon = epsilon
+        self.min_eps = min_eps
+        self.eps_decay = eps_decay
+        self.lr = lr
+        self.tau = tau
+        self.lmbda = lmbda
 
-    def get_action(self, obs):
-        sample = random.random()
+    def get_action(self, obs, mask=None):
         self.epsilon = max(self.min_eps, self.epsilon - (self.epsilon / self.eps_decay))
+        sample = random.random()
+
+        if mask is None:
+            mask = torch.ones(self.n_actions, device=device)
+        else:
+            mask = torch.tensor(mask, device=device)
 
         if sample > self.epsilon:
             with torch.no_grad():
-                return self.policy_net(obs).argmax(dim=1, keepdim=True)
+                q_values = self.policy_net(obs)
+                q_values = q_values.masked_fill(mask == 0, -float("inf"))
+
+            return q_values.argmax(dim=1, keepdim=True)
         else:
-            action = random.randint(0, self.n_actions - 1)
-            return torch.tensor([[action]], dtype=torch.long, device=device)
+            return torch.multinomial(mask.float(), 1).view(1, 1)
 
     def train(self):
         if len(self.memory) < self.batch_size:
@@ -59,7 +81,7 @@ class DQN:
         actions = torch.cat(batch.action)
         reward = torch.cat(batch.reward)
 
-        q_values = self.policy_net(obs).gather(1, actions)
+        q_values = self.policy_net(obs).gather(1, actions).flatten()
 
         # compute target q values
         next_q_values = torch.zeros(self.batch_size, device=device)
@@ -70,14 +92,29 @@ class DQN:
         target_q_values = (next_q_values * self.gamma) + reward
 
         criterion = nn.SmoothL1Loss()
-        loss = criterion(q_values, target_q_values.unsqueeze(1))
+        loss = criterion(q_values, target_q_values)
 
         self.optimizer.zero_grad()
         loss.backward()
+        self.e_tracing(q_values, target_q_values)
         torch.nn.utils.clip_grad_value_(self.policy_net.parameters(), 100)
         self.optimizer.step()
 
         return round(loss.item(), 4)
+
+    def e_tracing(self, q_values, target_q_values):
+        td_error = (target_q_values - q_values).mean()
+
+        for name, param in self.policy_net.named_parameters():
+            if param.grad is not None:
+                self.E[name] = (
+                    self.gamma * self.lmbda * self.E[name] + param.grad.clone()
+                )
+
+        with torch.no_grad():
+            for name, param in self.policy_net.named_parameters():
+                if param.grad is not None:
+                    param += self.lr * td_error * self.E[name]
 
     def update_target_net(self):
         target_net_state_dict = self.target_net.state_dict()

@@ -35,7 +35,7 @@ class LSTM(nn.Module):
         out_features: int,
         n_layers: int,
         n_units: int,
-        dropout: float,
+        dropout: float = 0.0,
     ):
         super().__init__()
         self.lstm = nn.LSTM(in_features, n_units, n_layers, batch_first=True)
@@ -48,13 +48,13 @@ class LSTM(nn.Module):
         return self.fc(out[:, -1, :])
 
 
-class TransformerModel(nn.Module):
+class Transformer(nn.Module):
     def __init__(
         self,
-        d_model: int,  # number of features in obs
         out_features: int,
         max_len: int,
         n_layers: int,
+        d_model: int,  # must be even; divisible by nhead; like hidden size
         nhead: int = 8,
         dropout: float = 0.0,
     ):
