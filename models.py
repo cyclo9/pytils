@@ -9,7 +9,6 @@ class FeedForward(nn.Module):
         out_features: int,
         n_layers: int,
         n_units: int,
-        dropout: float = 0.0,
     ):
         super().__init__()
 
@@ -19,7 +18,6 @@ class FeedForward(nn.Module):
             layers.append(nn.ReLU())
             in_features = n_units
 
-        layers.append(nn.Dropout(dropout))
         layers.append(nn.Linear(n_units, out_features))
 
         self.model = nn.Sequential(*layers)
@@ -43,9 +41,9 @@ class LSTM(nn.Module):
         self.fc = nn.Linear(n_units, out_features)
 
     def forward(self, x, hidden=None):
-        out, hidden = self.lstm(x, hidden)
+        out, (hn, cn) = self.lstm(x, hidden)
         out = self.dropout(out)
-        return self.fc(out[:, -1, :])
+        return self.fc(out[:, -1, :]), (hn, cn)
 
 
 class Transformer(nn.Module):
@@ -89,12 +87,13 @@ class PositionalEncoding(nn.Module):
         pe = torch.zeros(max_len, d_model)
         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
         div_term = torch.exp(
-            torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model)
+            torch.arange(0, d_model, 2).float()
+            * (-math.log(10000.0) / d_model)
         )
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0).transpose(0, 1)
-        self.register_buffer("pe", pe)
+        self.register_buffer('pe', pe)
 
     def forward(self, x):
         x = x + self.pe[: x.size(0), :]
