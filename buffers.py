@@ -2,27 +2,23 @@ import random
 import torch
 from collections import namedtuple, deque
 
-ReplayTransition = namedtuple(
-    "ReplayTransition", ("obs", "action", "next_obs", "reward")
-)
-
 RolloutTransition = namedtuple(
     "RolloutTransition", ["obs", "act", "log_prob", "reward", "value", "done"]
 )
 
 
 class ReplayBuffer(object):
-
-    def __init__(self, capacity):
+    def __init__(self, capacity, features):
+        self.Transition = namedtuple("Transition", features)
         self.memory = deque([], maxlen=capacity)
 
     def push(self, *args):
         """Save a transition"""
-        self.memory.append(ReplayTransition(*args))
+        self.memory.append(self.Transition(*args))
 
     def sample(self, batch_size):
         batch = random.sample(self.memory, batch_size)
-        return ReplayTransition(*zip(*batch))
+        return self.Transition(*zip(*batch))
 
     def __len__(self):
         return len(self.memory)
