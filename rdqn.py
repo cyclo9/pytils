@@ -4,12 +4,13 @@ import torch
 import torch.nn as nn
 from torch.optim.adamw import AdamW
 
-from buffers import ReplayBuffer
+from .rlutils import apply_mask
+from .buffers import ReplayBuffer
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-class DQN:
+class RDQN:
     def __init__(self, n_acts, policy_net, target_net):
         self._init_hyperparameters()
         self.n_actions = n_acts
@@ -17,13 +18,9 @@ class DQN:
         self.policy_net = policy_net.to(device)
         self.target_net = target_net.to(device)
         self.target_net.load_state_dict(policy_net.state_dict())
-        self.E = {
-            name: torch.zeros_like(param)
-            for name, param in self.policy_net.named_parameters()
-        }
 
         self.optimizer = AdamW(policy_net.parameters(), lr=self.lr, amsgrad=True)
-        self.memory = ReplayBuffer(10000)
+        self.memory = ReplayBuffer(10000, ("obs", "action", "next_obs", "reward"))
 
     def _init_hyperparameters(
         self,
@@ -31,7 +28,7 @@ class DQN:
         gamma: float = 0.99,
         epsilon: float = 0.99,
         min_eps: float = 0.05,
-        eps_decay: int = 10000,
+        eps_decay: int = 100_000,
         lr: float = 1e-4,
         tau: float = 5e-3,
         lmbda: float = 1e-3,
@@ -46,22 +43,20 @@ class DQN:
         self.lmbda = lmbda
 
     def get_action(self, obs, mask=None):
-        self.epsilon = max(self.min_eps, self.epsilon - (self.epsilon / self.eps_decay))
+        mask = [1] * self.n_actions if mask is None else mask
         sample = random.random()
 
-        if mask is None:
-            mask = torch.ones(self.n_actions, device=device)
+        if sample < self.epsilon:
+            mask = torch.tensor(mask, dtype=torch.float32, device=device)
+            action = torch.multinomial(mask, 1).view(1, 1)
         else:
-            mask = torch.tensor(mask, device=device)
-
-        if sample > self.epsilon:
             with torch.no_grad():
                 q_values = self.policy_net(obs)
-                q_values = q_values.masked_fill(mask == 0, -float("inf"))
+                q_values = apply_mask(q_values, mask)
+            action = q_values.argmax().view(1, 1)
 
-            return q_values.argmax(dim=1, keepdim=True)
-        else:
-            return torch.multinomial(mask.float(), 1).view(1, 1)
+        self.epsilon = max(self.min_eps, self.epsilon - (self.epsilon / self.eps_decay))
+        return action
 
     def train(self):
         if len(self.memory) < self.batch_size:
@@ -87,7 +82,7 @@ class DQN:
         next_q_values = torch.zeros(self.batch_size, device=device)
         with torch.no_grad():
             next_q_values[non_final_mask] = (
-                self.target_net(non_final_next_obs).max(1).values
+                self.target_net(non_final_next_obs).max(1).values.squeeze()
             )
         target_q_values = (next_q_values * self.gamma) + reward
 
@@ -96,25 +91,10 @@ class DQN:
 
         self.optimizer.zero_grad()
         loss.backward()
-        self.e_tracing(q_values, target_q_values)
         torch.nn.utils.clip_grad_value_(self.policy_net.parameters(), 100)
         self.optimizer.step()
 
         return round(loss.item(), 4)
-
-    def e_tracing(self, q_values, target_q_values):
-        td_error = (target_q_values - q_values).mean()
-
-        for name, param in self.policy_net.named_parameters():
-            if param.grad is not None:
-                self.E[name] = (
-                    self.gamma * self.lmbda * self.E[name] + param.grad.clone()
-                )
-
-        with torch.no_grad():
-            for name, param in self.policy_net.named_parameters():
-                if param.grad is not None:
-                    param += self.lr * td_error * self.E[name]
 
     def update_target_net(self):
         target_net_state_dict = self.target_net.state_dict()

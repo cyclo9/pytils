@@ -4,6 +4,13 @@ from collections import defaultdict
 import torch.nn.functional as F
 
 
+def apply_mask(action: torch.Tensor, mask: list[int]):
+    mask_tensor = torch.tensor(mask, dtype=torch.bool)
+    action = action.flatten()
+    action[mask_tensor == 0] = float("-inf")
+    return action
+
+
 def make_mask(mask):
     mask = torch.tensor(mask, dtype=torch.float)
     return mask.masked_fill(mask == 0, float("-1e10"))

@@ -80,7 +80,7 @@ class Transformer(nn.Module):
 
         self.encoder = nn.Linear(in_size, d_model)
         self.pos_encoder = PositionalEncoding(d_model, dropout)
-        encoder_layers = nn.TransformerEncoderLayer(d_model, nhead)
+        encoder_layers = nn.TransformerEncoderLayer(d_model, nhead, batch_first=True)
         self.transformer_encoder = nn.TransformerEncoder(encoder_layers, n_layers)
         self.fc = nn.Linear(d_model, out_size)
 
@@ -88,5 +88,5 @@ class Transformer(nn.Module):
         x = self.encoder(x)
         x = self.pos_encoder(x)
         x = self.transformer_encoder(x)
-        x = self.fc(x)
+        x = self.fc(x)[:, -1, :]
         return x
