@@ -2,6 +2,9 @@ import torch, numpy as np, torch.nn as nn
 from torch.distributions import Normal, Categorical
 from collections import defaultdict
 import torch.nn.functional as F
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
 
 
 def apply_mask(action: torch.Tensor, mask: list[int]):
@@ -9,6 +12,25 @@ def apply_mask(action: torch.Tensor, mask: list[int]):
     action = action.flatten()
     action[mask_tensor == 0] = float("-inf")
     return action
+
+
+class WindowSlider:
+    def __init__(self, capacity: int, features, s, e):
+        self.arr = np.empty((0, features))
+        self.capacity = capacity
+        self.s = s
+        self.e = e
+
+    def push(self, new_row):
+        self.arr = np.append(self.arr, [new_row], axis=0)
+        if len(self.arr) > self.capacity:
+            self.arr = self.arr[1:]
+
+    def get(self):
+        part = self.arr[:, self.s : self.e]
+        norm_part = scaler.fit_transform(part)
+        self.arr[:, self.s : self.e] = norm_part
+        return self.arr
 
 
 def make_mask(mask):
