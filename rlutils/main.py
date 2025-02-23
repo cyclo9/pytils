@@ -26,11 +26,14 @@ class WindowSlider:
         if len(self.arr) > self.capacity:
             self.arr = self.arr[1:]
 
-    def get(self):
-        part = self.arr[:, self.s : self.e]
-        norm_part = scaler.fit_transform(part)
-        self.arr[:, self.s : self.e] = norm_part
-        return self.arr
+    def get(self, norm=True):
+        if norm:
+            part = self.arr[:, self.s : self.e]
+            norm_part = scaler.fit_transform(part)
+            self.arr[:, self.s : self.e] = norm_part
+            return self.arr
+        else:
+            return self.arr
 
 
 def make_mask(mask):
