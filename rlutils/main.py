@@ -15,7 +15,7 @@ def apply_mask(action: torch.Tensor, mask: list[int]):
 
 
 class WindowSlider:
-    def __init__(self, capacity: int, features, s, e):
+    def __init__(self, capacity: int, features, s=None, e=None):
         self.arr = np.empty((0, features))
         self.capacity = capacity
         self.s = s
