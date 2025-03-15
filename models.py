@@ -1,12 +1,13 @@
 import torch, math
 import torch.nn as nn
+from pytils import check_cnn1d_sizes, r
 
 
 class FeedForward(nn.Module):
     def __init__(
         self,
-        in_features: int,
-        out_features: int,
+        in_size: int,
+        out_size: int,
         n_layers: int,
         n_units: int,
     ):
@@ -14,16 +15,58 @@ class FeedForward(nn.Module):
 
         layers = []
         for _ in range(n_layers + 1):
-            layers.append(nn.Linear(in_features, n_units))
+            layers.append(nn.Linear(in_size, n_units))
             layers.append(nn.ReLU())
-            in_features = n_units
-
-        layers.append(nn.Linear(n_units, out_features))
-
+            in_size = n_units
+        layers.append(nn.Linear(n_units, out_size))
         self.model = nn.Sequential(*layers)
 
     def forward(self, x):
         return self.model(x)
+
+
+class CNN1D(nn.Module):
+    def __init__(
+        self,
+        in_size: int,
+        out_size: int,
+        n_layers: int,
+        out_channels: int,
+        seq_len: int,
+        min_seq_len: int,
+        kernel_size: int = 2,
+        padding: int = -1,
+    ):
+        """`kernel_size`, `padding` all have to be <=`seq_len`"""
+
+        super().__init__()
+
+        layers = []
+        calc_len = lambda x, s: ((x - kernel_size + (2 * padding)) // s) + 1
+        post_pool_len = lambda x: calc_len(x, kernel_size)
+
+        for _ in range(n_layers):
+            padding = (kernel_size - 1) // 2 if padding == -1 else padding
+
+            layers.append(nn.Conv1d(in_size, out_channels, kernel_size, 1, padding))
+            layers.append(nn.ReLU())
+
+            seq_len = calc_len(seq_len, 1)
+
+            if post_pool_len(seq_len) >= min_seq_len:
+                layers.append(nn.MaxPool1d(kernel_size))
+                seq_len //= kernel_size
+
+            in_size = out_channels
+
+        layers.append(nn.Flatten())
+        self.model = nn.Sequential(*layers)
+        self.fc = nn.Linear(seq_len * out_channels, out_size)
+        self.out_size = out_size
+
+    def forward(self, x):
+        x = self.model(x)
+        return self.fc(x)
 
 
 class LSTM(nn.Module):
