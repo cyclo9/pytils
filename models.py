@@ -28,10 +28,10 @@ class FeedForward(nn.Module):
 class CNN1D(nn.Module):
     def __init__(
         self,
-        in_size: int,
+        channels: int,
         out_size: int,
         n_layers: int,
-        out_channels: int,
+        num_classes: int,
         seq_len: int,
         min_seq_len: int,
         kernel_size: int = 2,
@@ -48,7 +48,7 @@ class CNN1D(nn.Module):
         for _ in range(n_layers):
             padding = (kernel_size - 1) // 2 if padding == -1 else padding
 
-            layers.append(nn.Conv1d(in_size, out_channels, kernel_size, 1, padding))
+            layers.append(nn.Conv1d(channels, num_classes, kernel_size, 1, padding))
             layers.append(nn.ReLU())
 
             seq_len = calc_len(seq_len, 1)
@@ -57,11 +57,11 @@ class CNN1D(nn.Module):
                 layers.append(nn.MaxPool1d(kernel_size))
                 seq_len //= kernel_size
 
-            in_size = out_channels
+            channels = num_classes
 
         layers.append(nn.Flatten())
         self.model = nn.Sequential(*layers)
-        self.fc = nn.Linear(seq_len * out_channels, out_size)
+        self.fc = nn.Linear(seq_len * num_classes, out_size)
         self.out_size = out_size
 
     def forward(self, x):
