@@ -31,7 +31,7 @@ class CNN1D(nn.Module):
         channels: int,
         out_size: int,
         n_layers: int,
-        out_channel: int,
+        out_channels: int,
         seq_len: int,
         min_seq_len: int,
         kernel_size: int = 2,
