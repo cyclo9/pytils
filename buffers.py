@@ -10,6 +10,7 @@ RolloutTransition = namedtuple(
 class ReplayBuffer(object):
     def __init__(self, capacity, features):
         self.Transition = namedtuple("Transition", features)
+        self.capacity = capacity
         self.memory = deque([], maxlen=capacity)
 
     def push(self, *args):
@@ -19,6 +20,9 @@ class ReplayBuffer(object):
     def sample(self, batch_size):
         batch = random.sample(self.memory, batch_size)
         return self.Transition(*zip(*batch))
+
+    def clear(self):
+        self.memory = deque([], maxlen=self.capacity)
 
     def __len__(self):
         return len(self.memory)

@@ -36,6 +36,7 @@ class RDQN:
         self.batch_size = batch_size
         self.gamma = gamma
         self.epsilon = epsilon
+        self.max_eps = epsilon
         self.min_eps = min_eps
         self.eps_decay = eps_decay
         self.lr = lr
@@ -55,8 +56,12 @@ class RDQN:
                 q_values = apply_mask(q_values, mask)
             action = q_values.argmax().view(1, 1)
 
-        self.epsilon = max(self.min_eps, self.epsilon - (self.epsilon / self.eps_decay))
         return action
+
+    def decay_epsilon(self):
+        self.epsilon = max(
+            self.min_eps, self.epsilon - (self.max_eps - self.min_eps) / self.eps_decay
+        )
 
     def train(self):
         if len(self.memory) < self.batch_size:

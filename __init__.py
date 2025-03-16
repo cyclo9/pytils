@@ -38,28 +38,6 @@ def check_cnn1d_sizes(
     return True, f"Valid: final curr_length = {curr_length}"
 
 
-class WindowSlider:
-    def __init__(self, capacity: int, features, s=None, e=None):
-        self.arr = np.empty((0, features))
-        self.capacity = capacity
-        self.s = s
-        self.e = e
-
-    def push(self, new_row):
-        self.arr = np.append(self.arr, [new_row], axis=0)
-        if len(self.arr) > self.capacity:
-            self.arr = self.arr[1:]
-
-    def get(self, norm=True):
-        if norm:
-            part = self.arr[:, self.s : self.e]
-            norm_part = scaler.fit_transform(part)
-            self.arr[:, self.s : self.e] = norm_part
-            return self.arr
-        else:
-            return self.arr
-
-
 def make_mask(mask):
     mask = torch.tensor(mask, dtype=torch.float)
     return mask.masked_fill(mask == 0, float("-1e10"))
