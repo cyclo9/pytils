@@ -35,6 +35,7 @@ class CNN1D(nn.Module):
         seq_len: int,
         min_seq_len: int,
         kernel_size: int = 2,
+        dropout: float = 0.0,
         padding: int = -1,
     ):
         """`kernel_size`, `padding` all have to be <=`seq_len`"""
@@ -49,7 +50,9 @@ class CNN1D(nn.Module):
             padding = (kernel_size - 1) // 2 if padding == -1 else padding
 
             layers.append(nn.Conv1d(channels, out_channels, kernel_size, 1, padding))
+            layers.append(nn.BatchNorm1d(out_channels))
             layers.append(nn.ReLU())
+            layers.append(nn.Dropout(dropout))
 
             seq_len = calc_len(seq_len, 1)
 
