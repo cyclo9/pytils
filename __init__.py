@@ -1,41 +1,16 @@
-def check_cnn1d_sizes(
-    seq_len: int, n_layers: int, padding: int, kernel_size: int, pool_size: int
-) -> tuple[bool, str]:
-    """
-    Check if kernel_size and pool_size are valid for a given seq_len.
-    Returns: (is_valid, message)
-    """
-    curr_length = seq_len
-    for layer in range(n_layers):
-        # Check kernel_size for Conv1d
-        padded_length = curr_length + 2 * padding
-        if padded_length < kernel_size:
-            return (
-                False,
-                f"Layer {layer + 1}: kernel_size {kernel_size} > padded length {padded_length}",
-            )
+import torch
+from datetime import datetime, timezone
 
-        # Update length after convolution
-        curr_length = padded_length - kernel_size + 1
-        if curr_length <= 0:
-            return (
-                False,
-                f"Layer {layer + 1}: curr_length {curr_length} <= 0 after Conv1d",
-            )
 
-        # Update length after pooling
-        curr_length //= pool_size
-        if curr_length <= 0:
-            return (
-                False,
-                f"Layer {layer + 1}: curr_length {curr_length} <= 0 after MaxPool1d (pool_size={pool_size})",
-            )
+def unix_to_utc(unix_ts: int):
+    return datetime.fromtimestamp(unix_ts, tz=timezone.utc).strftime(
+        "%Y-%m-%d %H:%M:%S"
+    )
 
-    # Final check
-    if curr_length <= 0:
-        return False, "Final curr_length <= 0, invalid for Linear layer"
 
-    return True, f"Valid: final curr_length = {curr_length}"
+def rfc3339_to_hhmm(timestamp: str) -> str:
+    dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+    return dt.strftime("%m-%d-%Y %H:%M:%S")
 
 
 def make_mask(mask):
@@ -43,67 +18,19 @@ def make_mask(mask):
     return mask.masked_fill(mask == 0, float("-1e10"))
 
 
-class StochasticActor:
-    def __init__(self, actor_net, categorical=False):
-        self.actor_net = actor_net
-        self.categorical = categorical
+class Nil:
+    def __repr__(self):
+        return "nil"
 
-    def __call__(self, x, mask=None, min=-float("inf"), max=float("inf")):
-        if self.categorical:
-            logits = self.actor_net(x)
-
-            mask = make_mask(mask or [1] * len(logits))
-            logits = logits * mask
-
-            probs = F.softmax(logits, dim=0)
-            dist = Categorical(probs)
-            action = dist.sample()
-        else:
-            mean, std = self.actor_net(x)
-            std = F.softplus(std)
-            dist = Normal(mean, std)
-            action = dist.sample()
-            action = torch.clamp(action, min, max)
-
-        log_prob = dist.log_prob(action)
-        entropy = dist.entropy()
-        return action, log_prob, entropy
-
-    def evaluate(self, x, actions):
-        if self.categorical:
-            logits = self.actor_net(x)
-            probs = F.softmax(logits, dim=0)
-            dist = Categorical(probs)
-        else:
-            mean, std = self.actor_net(x)
-            std = F.softplus(std)
-            dist = Normal(mean, std)
-
-        return dist.log_prob(actions)
+    def __bool__(self):
+        return False
 
 
-class RolloutBuffer:
-    def __init__(self):
-        self.data = defaultdict(list)
+nil = Nil()
 
-    def add(self, entries):
-        for key, value in entries.items():
-            self.data[key].append(value)
 
-    def __getitem__(self, key):
-        if key in self.data:
-            return torch.stack(self.data[key])
-        return torch.tensor([])
-
-    def sample(self):
-        key = next(iter(self.data))
-        length = len(self.data[key])
-
-        indices = np.random.permutation(length).tolist()
-        return indices
-
-    def clear(self):
-        self.data = defaultdict(list)
+def r(num, d=0):
+    return round(num) if d == 0 else round(num, d)
 
 
 class GAE:
@@ -129,18 +56,3 @@ class GAE:
             returns[t] = gae + values[t]
 
         return advantages, returns
-
-
-class Nil:
-    def __repr__(self):
-        return "nil"
-
-    def __bool__(self):
-        return False
-
-
-nil = Nil()
-
-
-def r(num, d=0):
-    return round(num) if d == 0 else round(num, d)
