@@ -1,6 +1,5 @@
 import torch, math
 import torch.nn as nn
-from pytils import check_cnn1d_sizes, r
 
 
 class FeedForward(nn.Module):
