@@ -24,6 +24,46 @@ class FeedForward(nn.Module):
         return self.model(x)
 
 
+class LSTM(nn.Module):
+    def __init__(
+        self,
+        in_size: int,
+        out_size: int,
+        n_layers: int,
+        n_units: int,
+        dropout: float = 0.0,
+    ):
+        super().__init__()
+        self.lstm = nn.LSTM(
+            in_size, n_units, n_layers, batch_first=True, dropout=dropout
+        )
+        self.fc = nn.Linear(n_units, out_size)
+
+    def forward(self, x, hidden=None):
+        out, (hn, cn) = self.lstm(x, hidden)
+        out = self.fc(out[:, -1, :])
+        return out, (hn, cn)
+
+
+class GRU(nn.Module):
+    def __init__(
+        self,
+        in_size: int,
+        out_size: int,
+        n_layers: int,
+        n_units: int,
+        dropout: float = 0.0,
+    ):
+        super().__init__()
+        self.gru = nn.GRU(in_size, n_units, n_layers, batch_first=True, dropout=dropout)
+        self.fc = nn.Linear(n_units, out_size)
+
+    def forward(self, x, hn=None):
+        out, hn = self.gru(x, hn)
+        out = self.fc(out[:, -1, :])
+        return out, hn
+
+
 class CNN1D(nn.Module):
     def __init__(
         self,
@@ -69,26 +109,6 @@ class CNN1D(nn.Module):
     def forward(self, x):
         x = self.model(x)
         return self.fc(x)
-
-
-class LSTM(nn.Module):
-    def __init__(
-        self,
-        in_features: int,
-        out_features: int,
-        n_layers: int,
-        n_units: int,
-        dropout: float = 0.0,
-    ):
-        super().__init__()
-        self.lstm = nn.LSTM(in_features, n_units, n_layers, batch_first=True)
-        self.dropout = nn.Dropout(dropout)
-        self.fc = nn.Linear(n_units, out_features)
-
-    def forward(self, x, hidden=None):
-        out, (hn, cn) = self.lstm(x, hidden)
-        out = self.dropout(out)
-        return self.fc(out), (hn, cn)
 
 
 class PositionalEncoding(nn.Module):
