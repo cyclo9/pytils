@@ -4,7 +4,6 @@ import torch
 import torch.nn as nn
 from torch.optim.adamw import AdamW
 
-from .rlutils import apply_mask
 from .buffers import ReplayBuffer
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -51,7 +50,7 @@ class RDQN:
             _, hidden = self.policy_net(obs, hidden)
 
             if sample < self.epsilon:
-                action = torch.randint(0, self.n_actions, (1, 1))
+                action = torch.randint(0, self.n_actions, (1, 1), device=device)
             else:
                 q_values, hidden = self.policy_net(obs, hidden)
                 action = q_values.argmax().view(1, 1)
