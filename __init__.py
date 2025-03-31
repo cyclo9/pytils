@@ -2,6 +2,15 @@ import torch
 from datetime import datetime, timezone
 
 
+def rolling_avg(n, l, x):
+    """
+    `n`: the average
+    `l`: number of elements averaged so far
+    `x`: a new value to include in average
+    """
+    return (n * l + x) / (l + 1)
+
+
 def unix_to_utc(unix_ts: int):
     return datetime.fromtimestamp(unix_ts, tz=timezone.utc).strftime(
         "%Y-%m-%d %H:%M:%S"
