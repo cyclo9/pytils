@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from torch.optim.adamw import AdamW
 
-from buffers import ReplayBuffer
+from .buffers import ReplayBuffer
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -23,7 +23,7 @@ class DQN:
         }
 
         self.optimizer = AdamW(policy_net.parameters(), lr=self.lr, amsgrad=True)
-        self.memory = ReplayBuffer(10000, ("obs", "act", "log_prob", "reward"))
+        self.memory = ReplayBuffer(10000, ("obs", "action", "next_obs", "reward"))
 
     def _init_hyperparameters(
         self,
@@ -39,6 +39,7 @@ class DQN:
         self.batch_size = batch_size
         self.gamma = gamma
         self.epsilon = epsilon
+        self.max_eps = epsilon
         self.min_eps = min_eps
         self.eps_decay = eps_decay
         self.lr = lr
@@ -46,7 +47,6 @@ class DQN:
         self.lmbda = lmbda
 
     def get_action(self, obs, mask=None):
-        self.epsilon = max(self.min_eps, self.epsilon - (self.epsilon / self.eps_decay))
         sample = random.random()
 
         if mask is None:
@@ -62,6 +62,12 @@ class DQN:
             return q_values.argmax(dim=1, keepdim=True)
         else:
             return torch.multinomial(mask.float(), 1).view(1, 1)
+
+    def decay_epsilon(self):
+        """Call episode-wise"""
+        self.epsilon = max(
+            self.min_eps, self.epsilon - (self.max_eps - self.min_eps) / self.eps_decay
+        )
 
     def train(self):
         if len(self.memory) < self.batch_size:
@@ -96,25 +102,10 @@ class DQN:
 
         self.optimizer.zero_grad()
         loss.backward()
-        self.e_tracing(q_values, target_q_values)
         torch.nn.utils.clip_grad_value_(self.policy_net.parameters(), 100)
         self.optimizer.step()
 
         return round(loss.item(), 4)
-
-    def e_tracing(self, q_values, target_q_values):
-        td_error = (target_q_values - q_values).mean()
-
-        for name, param in self.policy_net.named_parameters():
-            if param.grad is not None:
-                self.E[name] = (
-                    self.gamma * self.lmbda * self.E[name] + param.grad.clone()
-                )
-
-        with torch.no_grad():
-            for name, param in self.policy_net.named_parameters():
-                if param.grad is not None:
-                    param += self.lr * td_error * self.E[name]
 
     def update_target_net(self):
         target_net_state_dict = self.target_net.state_dict()
