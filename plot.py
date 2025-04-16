@@ -10,12 +10,12 @@ class Plotter:
         if interactive:
             plt.ion()
 
-    def add_line(self, label: str, x=[], y=[], color=None):
+    def add_line(self, label: str, x=[], y=[], color=None, linewidth=2.5):
         """Adds a new line. Leave `x` and `y` empty to initialize only."""
         if color is None:
-            (line,) = self.ax.plot(x, y)
+            (line,) = self.ax.plot(x, y, linewidth=linewidth)
         else:
-            (line,) = self.ax.plot(x, y, color=color)
+            (line,) = self.ax.plot(x, y, color=color, linewidth=linewidth)
 
         line.set_label(label)
         self.lines[label] = line
@@ -29,7 +29,12 @@ class Plotter:
         y = np.append(line.get_ydata(), y)
 
         if x is None:
-            x = list(range(len(y)))
+            x_data = line.get_xdata()
+            if len(x_data) == 0:
+                x = [0]
+            else:
+                new_x = x_data[-1] + 1
+                x = np.append(x_data.copy(), new_x)
         else:
             x = np.append(line.get_xdata(), x)
 
