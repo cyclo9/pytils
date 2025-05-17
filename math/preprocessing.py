@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class EMAScaler:
     def __init__(self, num_features, alpha):
         self.mean = np.zeros(num_features, dtype=np.float32)
@@ -15,7 +16,9 @@ class EMAScaler:
             self.initialized = True
         else:
             self.mean = self.alpha * values + (1 - self.alpha) + self.mean
-            self.var = self.alpha * (values - self.mean) ** 2 + (1 - self.alpha) * self.var
+            self.var = (
+                self.alpha * (values - self.mean) ** 2 + (1 - self.alpha) * self.var
+            )
 
     def transform(self, values):
         values = np.asarray(values, dtype=np.float32)
@@ -27,6 +30,7 @@ class EMAScaler:
     def fit_transform(self, values):
         self.fit(values)
         return self.transform(values)
+
 
 class WelfordScaler:
     def __init__(self, num_features):
@@ -47,10 +51,9 @@ class WelfordScaler:
         variance = self.m2 / (self.n - 1) if self.n > 1 else np.zeros_like(self.m2)
         if np.all(variance == 0.0):
             return values
-        std = np.sqrt(variance) + 1e-8 
+        std = np.sqrt(variance) + 1e-8
         return (values - self.mean) / std
 
     def fit_transform(self, values):
         self.fit(values)
         return self.transform(values)
-    

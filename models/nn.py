@@ -9,7 +9,7 @@ class FeedForward(nn.Module):
         out_size: int,
         n_layers: int,
         n_units: int,
-        dropout: float = 0.0
+        dropout: float = 0.0,
     ):
         super().__init__()
 
