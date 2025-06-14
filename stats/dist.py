@@ -37,7 +37,7 @@ class SkewT:
 
         cdf_arg = alpha * y * torch.sqrt((nu + 1) / nu + d)
         with torch.no_grad():
-            t_cdf = sp.stdtr(nu + 1, cdf_arg.detach().cpu().numpy())
+            t_cdf = sp.stdtr(nu.cpu() + 1, cdf_arg.cpu())
         t_cdf = t_cdf.detach().clone().to(cdf_arg.device)
 
         pdf = 2 * t_pdf * t_cdf
