@@ -1,29 +1,44 @@
 import numpy as np
+from numpy.linalg import pinv
 
 
-class CausalSavitzkyGolay:
-    def __init__(self, window, poly_order, deriv, dt=1.0):
-        self.window_size = window
-        self.poly_order = poly_order
-        self.deriv_order = deriv
-        self.dt = dt
-        self.buffer = []
-        self.coeffs = self._compute_coeffs()
+def causal_savgol_dy(y, window, degree, dt=1.0):
+    if window <= degree:
+        raise ValueError("window must be > degree")
+    dydt = np.full_like(y, np.nan, dtype=np.float64)
+    for i in range(window - 1, len(y)):
+        # Construct time vector: [0, 1, ..., window-1]
+        t = np.arange(window)
+        V = np.vander(t, degree + 1, increasing=True)
+        V_inv = pinv(V)
+        coeffs = V_inv @ y[i - window + 1 : i + 1]
+        dydt[i] = coeffs[1] / dt  # First derivative coefficient
+    return dydt
 
-    def _compute_coeffs(self):
-        # Fit only to past and current samples: [0, -1, ..., -(window_size - 1)]
-        x = np.arange(0, -self.window_size, -1)
-        A = np.vander(x, self.poly_order + 1, increasing=True)
-        pinv = np.linalg.pinv(A)
-        return pinv[self.deriv_order] / (self.dt**self.deriv_order)
 
-    def update(self, new_val):
-        self.buffer.insert(0, new_val)
-        if len(self.buffer) > self.window_size:
-            self.buffer.pop()
-        if len(self.buffer) < self.window_size:
-            return np.nan
-        return np.dot(self.coeffs, self.buffer)
+# class CausalSavitzkyGolay:
+#     def __init__(self, window, poly_order, deriv, dt=1.0):
+#         self.window_size = window
+#         self.poly_order = poly_order
+#         self.deriv_order = deriv
+#         self.dt = dt
+#         self.buffer = []
+#         self.coeffs = self._compute_coeffs()
+#
+#     def _compute_coeffs(self):
+#         # Fit only to past and current samples: [0, -1, ..., -(window_size - 1)]
+#         x = np.arange(0, -self.window_size, -1)
+#         A = np.vander(x, self.poly_order + 1, increasing=True)
+#         pinv = np.linalg.pinv(A)
+#         return pinv[self.deriv_order] / (self.dt**self.deriv_order)
+#
+#     def update(self, new_val):
+#         self.buffer.insert(0, new_val)
+#         if len(self.buffer) > self.window_size:
+#             self.buffer.pop()
+#         if len(self.buffer) < self.window_size:
+#             return np.nan
+#         return np.dot(self.coeffs, self.buffer)
 
 
 """Deprecated but kept just incase; you never know"""

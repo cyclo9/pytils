@@ -1,16 +1,18 @@
 from datetime import datetime, timezone
-from numpy import nan, full_like
+from numpy import nan, full_like, roll
+from numpy.lib.stride_tricks import sliding_window_view
 
 
-def shift(arr, shift=1, fill_value=nan):
-    result = full_like(arr, fill_value, dtype=arr.dtype)
-    if shift > 0:
-        result[shift:] = arr[:-shift]
-    elif shift < 0:
-        result[:shift] = arr[-shift:]
+def shift(arr, n, fill=nan):
+    shifted = full_like(arr, fill)
+    if n >= 0:
+        rolled = roll(arr, n)[n:]
+        shifted[n:] = rolled
+        return shifted
     else:
-        result[:] = arr
-    return result
+        rolled = roll(arr, n)[:n]
+        shifted[:n] = rolled
+        return shifted
 
 
 def rolling_avg(old_mean, n, value):

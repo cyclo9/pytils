@@ -1,4 +1,4 @@
-from numpy import nan, full, asarray
+from numpy import nan, full, asarray, full_like, float64, apply_along_axis
 from numpy.lib.stride_tricks import sliding_window_view
 
 
@@ -8,9 +8,12 @@ def transpose_list_to_dict(arr):
     return map
 
 
-def slide_window_apply(y, func, w):
+def rolling_window_apply(y, func, w):
     y = asarray(y)
-    windows = sliding_window_view(y, window_shape=w)
-    arr = full(len(y), nan)
-    arr[w - 1 :] = [func(win)[-1] for win in windows]
+    arr = full_like(y, nan, dtype=float64)
+    if len(y) < w:
+        return arr
+    windows = sliding_window_view(y, w)
+    result = apply_along_axis(func, 1, windows)
+    arr[w - 1 :] = result
     return arr
