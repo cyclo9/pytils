@@ -1,5 +1,33 @@
-from numpy import nan, full, asarray, full_like, float64, apply_along_axis
-from numpy.lib.stride_tricks import sliding_window_view
+from numpy import (
+    array,
+    nan,
+    pad,
+    isnan,
+    asarray,
+    full_like,
+    float64,
+    apply_along_axis,
+    column_stack,
+)
+from .. import sliding_window_view
+
+# from numpy.lib.stride_tricks import sliding_window_view
+
+
+def interweave(a, b):
+    max_len = max(len(a), max(b))
+    init_type = a.dtype
+
+    a, b = a.astype(float), b.astype(float)
+
+    a = pad(a, (0, max_len - len(a)), constant_values=nan)
+    b = pad(b, (0, max_len - len(b)), constant_values=nan)
+
+    interwoven = column_stack((a, b)).ravel()
+    interwoven = interwoven[~isnan(interwoven)]
+    interwoven = interwoven.astype(init_type)
+
+    return interwoven
 
 
 def transpose_list_to_dict(arr):

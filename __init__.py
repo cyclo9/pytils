@@ -3,6 +3,16 @@ from numpy import nan, full_like, roll
 from numpy.lib.stride_tricks import sliding_window_view
 
 
+def convert_units(q_per_b, b=None, q=None, d=8):
+    if b is None and q is None:
+        raise ValueError("Provide exactly one of 'b' or 'q'")
+
+    if b is not None:
+        return round(b * q_per_b, d)
+    else:
+        return round(q / q_per_b, d)
+
+
 def shift(arr, n, fill=nan):
     shifted = full_like(arr, fill)
     if n >= 0:
@@ -35,11 +45,6 @@ def rfc3339_to_hhmm(timestamp: str) -> str:
     return dt.strftime("%m-%d-%Y %H:%M:%S")
 
 
-# def make_mask(mask):
-#     mask = torch.tensor(mask, dtype=torch.float)
-#     return mask.masked_fill(mask == 0, float("-1e10"))
-
-
 class Nil:
     def __repr__(self):
         return "nil"
@@ -50,10 +55,9 @@ class Nil:
 
 nil = Nil()
 
-
-def r(num, d=0):
-    return round(num) if d == 0 else round(num, d)
-
+# def make_mask(mask):
+#     mask = torch.tensor(mask, dtype=torch.float)
+#     return mask.masked_fill(mask == 0, float("-1e10"))
 
 # class GAE:
 #     def __init__(self, gamma, lmbda, value_net):

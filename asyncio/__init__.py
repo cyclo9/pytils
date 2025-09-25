@@ -1,1 +1,1 @@
-from ._event_bus import EventBus
+from .event_bus import EventBus

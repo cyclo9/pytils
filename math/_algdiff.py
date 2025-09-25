@@ -2,13 +2,13 @@ import numpy as np
 from math import factorial
 
 
-def algdiff(tau, x, n, k):
+def algdiff(x, n, k, tau=None):
     """`tau`: independent variable
     `x`: dependent variable
     `n`: the assumed order of the polynomial, locally
     `k`: order of derivative to compute
     """
-    tau = np.asarray(tau)
+    tau = np.arange(len(x)) if tau is None else np.asarray(tau)
     x = np.asarray(x)
 
     tau = tau - tau[-1]  # shift so last tau is 0

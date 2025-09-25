@@ -22,8 +22,12 @@ class RCSO:
 
         com = self._center_of_mass(*radii)
         d = np.sum((com - self.target_center) ** 2)
-        surplus = self._surplus(*radii)
-        return d - surplus
+        return d
+
+        # surplus = 0
+        # if all(abs(r - t) <= 1e-6 for r, t in zip(radii, self.target_radii)):
+        #     surplus = self._surplus(*radii)
+        # return d - surplus
 
     def _encode_params(self, *radii):
         unit_vectors = np.stack([np.cos(self._thetas), np.sin(self._thetas)])
