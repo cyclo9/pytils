@@ -1,6 +1,11 @@
 from datetime import datetime, timezone
 from numpy import nan, full_like, roll
 from numpy.lib.stride_tricks import sliding_window_view
+import os
+
+
+def clt():
+    os.system("cls" if os.name == "nt" else "clear")
 
 
 def convert_units(q_per_b, b=None, q=None, d=8):

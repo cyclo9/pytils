@@ -2,9 +2,6 @@ import torch, numpy as np, torch.nn as nn
 from torch.distributions import Normal, Categorical
 from collections import defaultdict
 import torch.nn.functional as F
-from sklearn.preprocessing import StandardScaler
-
-scaler = StandardScaler()
 
 
 def apply_mask(action: torch.Tensor, mask: list[int]):
