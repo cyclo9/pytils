@@ -17,6 +17,7 @@ class CNN1d(nn.Module):
             layers.append(
                 nn.Conv1d(in_ch, hidden_size, kernel_size=conv_kernel, padding=padding)
             )
+            layers.append(nn.BatchNorm1d(hidden_size))
             layers.append(nn.ReLU())
 
             if (i + 1) % 2 == 0 or i == len(hidden_sizes) - 1:

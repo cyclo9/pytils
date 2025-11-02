@@ -18,6 +18,6 @@ class EpsilonGreedy:
             action = random.randint(0, self.n_actions - 1)
         else:
             with torch.no_grad():
-                out = self.model(obs)
-                action = torch.argmax(out).item()
+                q_values = self.model(obs)
+                action = torch.argmax(q_values).item()
         return action
