@@ -1,7 +1,13 @@
 from datetime import datetime, timezone
-from numpy import nan, full_like, roll
+import numpy as np
 from numpy.lib.stride_tricks import sliding_window_view
 import os
+
+
+def chunk_1d(x, w):
+    x = np.asarray(x)
+    n = (x.size // w) * w
+    return x[:n].reshape(-1, w)
 
 
 def clt():
@@ -18,14 +24,14 @@ def convert_units(q_per_b, b=None, q=None, d=8):
         return round(q / q_per_b, d)
 
 
-def shift(arr, n, fill=nan):
-    shifted = full_like(arr, fill)
+def shift(arr, n, fill=np.nan):
+    shifted = np.full_like(arr, fill)
     if n >= 0:
-        rolled = roll(arr, n)[n:]
+        rolled = np.roll(arr, n)[n:]
         shifted[n:] = rolled
         return shifted
     else:
-        rolled = roll(arr, n)[:n]
+        rolled = np.roll(arr, n)[:n]
         shifted[:n] = rolled
         return shifted
 

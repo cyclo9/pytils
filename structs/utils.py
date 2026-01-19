@@ -1,5 +1,4 @@
 from numpy import (
-    array,
     nan,
     pad,
     isnan,
